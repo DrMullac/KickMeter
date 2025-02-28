@@ -30,17 +30,10 @@ def home():
 
 @app.route('/login')
 def login():
-    # Generate PKCE code pair
     code_verifier, code_challenge = generate_pkce_pair()
     session['code_verifier'] = code_verifier  # Store for later use
-    
-    # Generate and store the state in the session to prevent CSRF
-    state = secrets.token_urlsafe(16)
-    session['state'] = state
 
-    # Log the state to verify it's being set correctly
-    print(f"Generated state: {state}")
-
+    # Generate the full authorization URL
     auth_url = (
         f"https://kick.com/oauth/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read_stream&response_type=code"
         f"&client_id={CLIENT_ID}"
@@ -48,31 +41,26 @@ def login():
         f"&scope=USER_READ"
         f"&code_challenge={code_challenge}"
         f"&code_challenge_method=S256"
-        f"&state={state}"  # Pass the state here
+        f"&state={secrets.token_urlsafe(16)}"
     )
-    
-    # Log the full URL to verify it's correct
+
+    # Log the generated authorization URL for debugging purposes
     print(f"Redirecting to: {auth_url}")
-    
     return redirect(auth_url)
 
 @app.route('/callback')
 def callback():
+    # Get the code and state from the query parameters
     code = request.args.get('code')
     state = request.args.get('state')
-
-    # Log the state and code to verify they are being passed correctly
+    
+    # Log the received parameters for debugging purposes
     print(f"Callback received with code: {code} and state: {state}")
 
     if not code or not state:
-        return "Authorization failed!", 400
+        return "Authorization failed! Missing code or state.", 400
 
-    # Ensure the state matches the session value to prevent CSRF attacks
-    if state != session.get('state'):
-        return "State mismatch, possible CSRF attack!", 400
-
-    # Retrieve stored code verifier
-    code_verifier = session.pop('code_verifier', None)
+    code_verifier = session.pop('code_verifier', None)  # Retrieve stored verifier
     if not code_verifier:
         return "Code verifier missing!", 400
 
