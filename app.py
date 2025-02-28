@@ -12,7 +12,7 @@ app.secret_key = secrets.token_hex(16)  # Secret key for session management
 # OAuth Credentials (Replace with your actual Kick API credentials)
 CLIENT_ID = "01JN5ASN4DBEWWPJV52C2Q0702"
 CLIENT_SECRET = "eeb3ddcfb785bb82936bebd07968a9744e7c9fcc69cf925ee8167643554b6fdf"
-REDIRECT_URI = "https://kickmeter.onrender.com"  # Ensure this matches your Kick API settings
+REDIRECT_URI = "https://kickmeter.onrender.com/callback"  # Ensure this matches your Kick API settings
 AUTH_URL = "https://id.kick.com/oauth/authorize"
 TOKEN_URL = "https://id.kick.com/oauth/token"
 KICK_API_BASE_URL = "https://api.kick.com"
