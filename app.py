@@ -13,8 +13,8 @@ app.secret_key = secrets.token_hex(16)  # Secret key for session management
 CLIENT_ID = "01JN5ASN4DBEWWPJV52C2Q0702"
 CLIENT_SECRET = "eeb3ddcfb785bb82936bebd07968a9744e7c9fcc69cf925ee8167643554b6fdf"
 REDIRECT_URI = "https://kickmeter.onrender.com/callback"  # Ensure this matches your Kick API settings
-AUTH_URL = "https://id.kick.com/oauth/authorize"
-TOKEN_URL = "https://id.kick.com/oauth/token"
+AUTH_URL = "https://id.kick.com/oauth/authorize"  # Correct authorization URL
+TOKEN_URL = "https://id.kick.com/oauth/token"  # Correct token URL
 KICK_API_BASE_URL = "https://api.kick.com"
 
 # Generate PKCE Code Verifier & Challenge
@@ -34,10 +34,10 @@ def login():
     session['code_verifier'] = code_verifier  # Store for later use
 
     auth_url = (
-        f"https://kick.com/oauth/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read_stream&response_type=code"
-        f"&client_id={CLIENT_ID}"
+        f"{AUTH_URL}?client_id={CLIENT_ID}"
         f"&redirect_uri={REDIRECT_URI}"
-        f"&scope=USER_READ"
+        f"&scope=read_stream"
+        f"&response_type=code"
         f"&code_challenge={code_challenge}"
         f"&code_challenge_method=S256"
         f"&state={secrets.token_urlsafe(16)}"
