@@ -1,50 +1,98 @@
-from flask import Flask, request, render_template_string, jsonify, redirect
-import requests
 import os
+import requests
+import hashlib
+import base64
+import secrets
+from flask import Flask, request, redirect, session, render_template, jsonify
 
+# Flask App Setup
 app = Flask(__name__)
+app.secret_key = secrets.token_hex(16)  # Secret key for session management
 
-# Replace with your public API key or OAuth token if needed
-ACCESS_TOKEN = os.getenv('KICK_ACCESS_TOKEN', 'your_oauth_token_here')
+# OAuth Credentials (Replace with your actual Kick API credentials)
+CLIENT_ID = "01JN5ASN4DBEWWPJV52C2Q0702"
+CLIENT_SECRET = "eeb3ddcfb785bb82936bebd07968a9744e7c9fcc69cf925ee8167643554b6fdf"
+REDIRECT_URI = "https://kickmeter.onrender.com"  # Ensure this matches your Kick API settings
+AUTH_URL = "https://id.kick.com/oauth/authorize"
+TOKEN_URL = "https://id.kick.com/oauth/token"
+KICK_API_BASE_URL = "https://api.kick.com"
 
-# Step 1: Get Stream ID from user
-@app.route('/enter-stream-id', methods=['GET', 'POST'])
-def enter_stream_id():
-    if request.method == 'POST':
-        # Get the stream_id from the form
-        stream_id = request.form['stream_id']
-        return redirect(f'/viewer-count/{stream_id}')
-    
-    return render_template_string("""
-        <form method="POST">
-            <label for="stream_id">Enter Stream ID:</label>
-            <input type="text" id="stream_id" name="stream_id" required>
-            <button type="submit">Submit</button>
-        </form>
-    """)
+# Generate PKCE Code Verifier & Challenge
+def generate_pkce_pair():
+    code_verifier = base64.urlsafe_b64encode(os.urandom(40)).decode('utf-8').rstrip('=')
+    sha256 = hashlib.sha256(code_verifier.encode('utf-8')).digest()
+    code_challenge = base64.urlsafe_b64encode(sha256).decode('utf-8').rstrip('=')
+    return code_verifier, code_challenge
 
-# Step 2: Fetch viewer count for a specific stream (No login required)
-@app.route('/viewer-count/<stream_id>')
-def viewer_count(stream_id):
-    headers = {
-        'Authorization': f'Bearer {ACCESS_TOKEN}'
-    }
+@app.route('/')
+def home():
+    return render_template('index.html')  # Renders the input form
 
-    # Assuming Kick API has a public endpoint to get stream info
-    url = f'https://api.kick.com/streams/{stream_id}'  # Example endpoint (adjust accordingly)
-    response = requests.get(url, headers=headers)
+@app.route('/login')
+def login():
+    code_verifier, code_challenge = generate_pkce_pair()
+    session['code_verifier'] = code_verifier  # Store for later use
 
-    if response.status_code != 200:
-        return "Error fetching viewer count", 400
+    auth_url = (
+        f"{AUTH_URL}?response_type=code"
+        f"&client_id={CLIENT_ID}"
+        f"&redirect_uri={REDIRECT_URI}"
+        f"&scope=USER_READ"
+        f"&code_challenge={code_challenge}"
+        f"&code_challenge_method=S256"
+        f"&state={secrets.token_urlsafe(16)}"
+    )
+    return redirect(auth_url)
 
-    data = response.json()
-    print(f"API Response: {data}")  # Debugging print
-    viewer_count = data.get('viewer_count', 'No viewer data')  # Modify based on actual API response structure
+@app.route('/callback')
+def callback():
+    code = request.args.get('code')
+    if not code:
+        return "Authorization failed!", 400
 
-    return jsonify({
-        'stream_id': stream_id,
-        'viewer_count': viewer_count
-    })
+    code_verifier = session.pop('code_verifier', None)  # Retrieve stored verifier
+    if not code_verifier:
+        return "Code verifier missing!", 400
+
+    # Exchange the code for an access token
+    token_response = requests.post(TOKEN_URL, data={
+        "grant_type": "authorization_code",
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "code": code,
+        "redirect_uri": REDIRECT_URI,
+        "code_verifier": code_verifier
+    }).json()
+
+    if 'access_token' not in token_response:
+        return f"Error fetching access token: {token_response}", 400
+
+    session['access_token'] = token_response['access_token']
+    return redirect('/dashboard')
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
+@app.route('/viewer-count', methods=['GET'])
+def viewer_count():
+    stream_id = request.args.get('stream_id')
+    if not stream_id:
+        return jsonify({"error": "Stream ID is required"}), 400
+
+    access_token = session.get('access_token')
+    if not access_token:
+        return redirect('/login')
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get(f"{KICK_API_BASE_URL}/streams/{stream_id}", headers=headers)
+
+    if response.status_code == 200:
+        data = response.json()
+        viewer_count = data.get("viewer_count", "Unknown")
+        return jsonify({"stream_id": stream_id, "viewer_count": viewer_count})
+    else:
+        return jsonify({"error": "Failed to fetch viewer count"}), response.status_code
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=10000)
+    app.run(debug=True)
