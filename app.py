@@ -2,7 +2,7 @@ from flask import Flask, request, redirect, jsonify, render_template_string, ses
 import requests
 import os
 
-app = Flask(app)
+app = Flask(__name__)
 
 # Set your Kick API credentials
 KICK_CLIENT_ID = os.getenv('KICK_CLIENT_ID')
