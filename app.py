@@ -34,7 +34,7 @@ def login():
     session['code_verifier'] = code_verifier  # Store for later use
 
     auth_url = (
-        f"{https://kick.com/oauth/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read_stream}?response_type=code"
+        f"https://kick.com/oauth/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read_stream&response_type=code"
         f"&client_id={CLIENT_ID}"
         f"&redirect_uri={REDIRECT_URI}"
         f"&scope=USER_READ"
