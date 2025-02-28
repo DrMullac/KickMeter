@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template_string, jsonify
+from flask import Flask, request, render_template_string, jsonify, redirect
 import requests
 import os
 
@@ -11,6 +11,7 @@ ACCESS_TOKEN = os.getenv('KICK_ACCESS_TOKEN', 'your_oauth_token_here')
 @app.route('/enter-stream-id', methods=['GET', 'POST'])
 def enter_stream_id():
     if request.method == 'POST':
+        # Get the stream_id from the form
         stream_id = request.form['stream_id']
         return redirect(f'/viewer-count/{stream_id}')
     
