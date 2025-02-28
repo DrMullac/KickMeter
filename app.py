@@ -30,8 +30,13 @@ def home():
 
 @app.route('/login')
 def login():
+    # Generate PKCE code pair
     code_verifier, code_challenge = generate_pkce_pair()
     session['code_verifier'] = code_verifier  # Store for later use
+    
+    # Generate and store the state in the session to prevent CSRF
+    state = secrets.token_urlsafe(16)
+    session['state'] = state
 
     auth_url = (
         f"https://kick.com/oauth/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read_stream&response_type=code"
@@ -40,15 +45,16 @@ def login():
         f"&scope=USER_READ"
         f"&code_challenge={code_challenge}"
         f"&code_challenge_method=S256"
-        f"&state={secrets.token_urlsafe(16)}"
+        f"&state={state}"
     )
     return redirect(auth_url)
 
 @app.route('/callback')
 def callback():
-    # Retrieve the code and state from the callback URL
+    # Get the code and state parameters from the URL
     code = request.args.get('code')
-    state = request.args.get('state')  # Get the state parameter
+    state = request.args.get('state')  # Make sure the state is present
+
     print(f"Callback received with code: {code} and state: {state}")
 
     if not code:
