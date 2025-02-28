@@ -38,6 +38,9 @@ def login():
     state = secrets.token_urlsafe(16)
     session['state'] = state
 
+    # Log the state to verify it's being set correctly
+    print(f"Generated state: {state}")
+
     auth_url = (
         f"https://kick.com/oauth/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read_stream&response_type=code"
         f"&client_id={CLIENT_ID}"
@@ -45,26 +48,31 @@ def login():
         f"&scope=USER_READ"
         f"&code_challenge={code_challenge}"
         f"&code_challenge_method=S256"
-        f"&state={state}"
+        f"&state={state}"  # Pass the state here
     )
+    
+    # Log the full URL to verify it's correct
+    print(f"Redirecting to: {auth_url}")
+    
     return redirect(auth_url)
 
 @app.route('/callback')
 def callback():
-    # Get the code and state parameters from the URL
     code = request.args.get('code')
-    state = request.args.get('state')  # Make sure the state is present
+    state = request.args.get('state')
 
+    # Log the state and code to verify they are being passed correctly
     print(f"Callback received with code: {code} and state: {state}")
 
-    if not code:
-        return "Authorization failed! No code returned from Kick.", 400
+    if not code or not state:
+        return "Authorization failed!", 400
 
-    # Check if the state matches the one we sent in the login request
+    # Ensure the state matches the session value to prevent CSRF attacks
     if state != session.get('state'):
-        return "State mismatch! Potential CSRF attack.", 400
+        return "State mismatch, possible CSRF attack!", 400
 
-    code_verifier = session.pop('code_verifier', None)  # Retrieve stored verifier
+    # Retrieve stored code verifier
+    code_verifier = session.pop('code_verifier', None)
     if not code_verifier:
         return "Code verifier missing!", 400
 
@@ -77,8 +85,6 @@ def callback():
         "redirect_uri": REDIRECT_URI,
         "code_verifier": code_verifier
     }).json()
-
-    print(f"Token response: {token_response}")  # Log the token response for debugging
 
     if 'access_token' not in token_response:
         return f"Error fetching access token: {token_response}", 400
