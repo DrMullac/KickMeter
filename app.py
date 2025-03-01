@@ -1,4 +1,5 @@
 import requests
+import urllib.parse
 from fastapi import FastAPI, Query
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,15 +21,20 @@ app.add_middleware(
 CLIENT_ID = "01JN5ASN4DBEWWPJV52C2Q0702"
 CLIENT_SECRET = "eeb3ddcfb785bb82936bebd07968a9744e7c9fcc69cf925ee8167643554b6fdf"
 REDIRECT_URI = "https://kickmeter.onrender.com/callback"
-TOKEN_URL = "https://kick.com/oauth2/token"
+
+# ✅ URL-encode the Redirect URI to avoid errors
+ENCODED_REDIRECT_URI = urllib.parse.quote_plus(REDIRECT_URI)
+
+# ✅ Construct the Correct OAuth Authorization URL
 AUTH_URL = (
-    "https://kick.com/oauth2/authorize"
-    "?response_type=code"
+    f"https://kick.com/oauth2/authorize"
+    f"?response_type=code"
     f"&client_id={CLIENT_ID}"
-    f"&redirect_uri={REDIRECT_URI}"
-    "&scope=public"
-    "&force_login=true"  # ✅ Forces Kick to show the login page first
+    f"&redirect_uri={ENCODED_REDIRECT_URI}"
+    f"&scope=public"
 )
+
+TOKEN_URL = "https://kick.com/oauth2/token"
 KICK_API_URL = "https://kick.com/api/v2/channels/"
 
 # ✅ Headers to mimic a real browser request
@@ -60,7 +66,7 @@ def callback(code: str = Query(None)):
         return JSONResponse({
             "error": "Authorization code missing",
             "message": "Kick did not provide an authorization code. Please try logging in again.",
-            "fix": "Make sure your redirect URI in Kick Developer settings is correct."
+            "fix": "Ensure your redirect URI in Kick Developer settings is correct."
         }, status_code=400)
 
     # ✅ Exchange the authorization code for an access token
