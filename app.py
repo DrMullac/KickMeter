@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
-# ✅ Define FastAPI app at the beginning
+# ✅ Define FastAPI app
 app = FastAPI()
 
 # ✅ Add CORS support to allow frontend requests
@@ -16,12 +16,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Replace with your actual Kick API credentials
+# ✅ Kick API Credentials (Replace with your actual values)
 CLIENT_ID = "01JN5ASN4DBEWWPJV52C2Q0702"
 CLIENT_SECRET = "eeb3ddcfb785bb82936bebd07968a9744e7c9fcc69cf925ee8167643554b6fdf"
 REDIRECT_URI = "https://kickmeter.onrender.com/callback"
 TOKEN_URL = "https://kick.com/oauth2/token"
-AUTH_URL = f"https://kick.com/oauth2/authorize?response_type=code&client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=public"
+AUTH_URL = (
+    f"https://kick.com/oauth2/authorize?response_type=code"
+    f"&client_id={CLIENT_ID}"
+    f"&redirect_uri={REDIRECT_URI}"
+    "&scope=public"
+)
 KICK_API_URL = "https://kick.com/api/v2/channels/"
 
 # ✅ Headers to mimic a real browser request
@@ -46,11 +51,17 @@ def login():
 
 @app.get("/callback")
 def callback(code: str = Query(None)):
-    """Handles OAuth callback and gets the access token."""
+    """Handles OAuth callback and exchanges code for an access token."""
     global access_token
-    if not code:
-        return JSONResponse({"error": "Authorization code missing"}, status_code=400)
 
+    if not code:
+        return JSONResponse({
+            "error": "Authorization code missing",
+            "message": "Kick did not provide an authorization code. Please try logging in again.",
+            "fix": "Make sure your redirect URI in Kick Developer settings is correct."
+        }, status_code=400)
+
+    # ✅ Exchange the authorization code for an access token
     data = {
         "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
@@ -65,8 +76,11 @@ def callback(code: str = Query(None)):
         access_token = response.json().get("access_token")
         print(f"✅ Authentication successful! Access Token: {access_token}")
         return JSONResponse({"message": "Authentication successful! You can now use the API."})
-    else:
-        return JSONResponse({"error": "Failed to get access token", "details": response.text}, status_code=400)
+
+    return JSONResponse({
+        "error": "Failed to get access token",
+        "details": response.text
+    }, status_code=400)
 
 @app.get("/viewer_count/{username}")
 def get_viewer_count(username: str):
