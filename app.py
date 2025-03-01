@@ -23,16 +23,18 @@ CLIENT_SECRET = "eeb3ddcfb785bb82936bebd07968a9744e7c9fcc69cf925ee8167643554b6fd
 REDIRECT_URI = "https://kickmeter.onrender.com/callback"
 
 # ✅ URL-encode the Redirect URI to avoid errors
-ENCODED_REDIRECT_URI = urllib.parse.quote_plus(REDIRECT_URI)
+ENCODED_REDIRECT_URI = REDIRECT_URI  # ✅ No extra encoding, Kick handles it correctly
+
 
 # ✅ Construct the Correct OAuth Authorization URL
 AUTH_URL = (
     f"https://kick.com/oauth2/authorize"
     f"?response_type=code"
     f"&client_id={CLIENT_ID}"
-    f"&redirect_uri={ENCODED_REDIRECT_URI}"
+    f"&redirect_uri={ENCODED_REDIRECT_URI}"  # ✅ Now it's correctly formatted
     f"&scope=public"
 )
+
 
 TOKEN_URL = "https://kick.com/oauth2/token"
 KICK_API_URL = "https://kick.com/api/v2/channels/"
