@@ -31,9 +31,9 @@ app.add_middleware(
 )
 
 # ✅ Kick API Credentials (User OAuth Only)
-CLIENT_ID = "01JN5ASN4DBEWWPJV52C2Q0702"  # Replace with your Kick client ID
-CLIENT_SECRET = "eeb3ddcfb785bb82936bebd07968a9744e7c9fcc69cf925ee8167643554b6fdf"  # Replace with your Kick secret
-REDIRECT_URI = "https://kickmeter.onrender.com/callback"  # Must match Kick Developer Portal
+CLIENT_ID = "YOUR_CORRECT_CLIENT_ID"  # ✅ Replace with your correct Kick client ID
+CLIENT_SECRET = "YOUR_CORRECT_CLIENT_SECRET"  # ✅ Replace with your correct Kick secret
+REDIRECT_URI = "https://kickmeter.onrender.com/callback"  # ✅ Must match Kick Developer Portal
 
 # ✅ PKCE Code Verifier & Challenge
 CODE_VERIFIER = secrets.token_urlsafe(64)  # Generate a secure random string
@@ -55,7 +55,7 @@ AUTH_URL = (
     f"&state={STATE}"
 )
 
-TOKEN_URL = "https://id.kick.com/oauth/token"  # ✅ Updated to correct OAuth token URL
+TOKEN_URL = "https://id.kick.com/oauth/token"  # ✅ Corrected Token URL
 KICK_API_URL = "https://kick.com/api/v2/channels/"  # ✅ API requests still use `kick.com`
 
 # ✅ Headers to mimic a real browser request
@@ -95,16 +95,21 @@ def callback(code: str = Query(None), state: str = Query(None)):
             "message": "The state parameter does not match. Possible CSRF attack."
         }, status_code=400)
 
-    # ✅ Exchange the authorization code for a user access token using PKCE
+    # ✅ Fix: Include `client_secret` in token request
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
     data = {
         "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,  # ✅ Must include client_secret
         "grant_type": "authorization_code",
         "code": code,
         "redirect_uri": REDIRECT_URI,
-        "code_verifier": CODE_VERIFIER,  # ✅ Must include the code_verifier
+        "code_verifier": CODE_VERIFIER,
     }
 
-    response = requests.post(TOKEN_URL, data=data, headers=HEADERS)
+    response = requests.post(TOKEN_URL, data=data, headers=headers)
 
     try:
         response_json = response.json()
