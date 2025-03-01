@@ -12,8 +12,13 @@ from fastapi.templating import Jinja2Templates
 # ✅ Define FastAPI app
 app = FastAPI()
 
-# ✅ Serve Static Files & Templates
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# ✅ Check if 'static/' directory exists before mounting
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+else:
+    print("⚠️ Warning: 'static/' directory does not exist. Skipping mount.")
+
+# ✅ Serve Templates
 templates = Jinja2Templates(directory="templates")
 
 # ✅ Add CORS support to allow frontend requests
@@ -40,7 +45,7 @@ STATE = secrets.token_urlsafe(16)  # Random state for CSRF protection
 
 # ✅ OAuth URLs (Using `id.kick.com`)
 AUTH_URL = (
-    f"https://id.kick.com/oauth/authorize"  # ✅ Correct URL
+    f"https://id.kick.com/oauth/authorize"
     f"?response_type=code"
     f"&client_id={CLIENT_ID}"
     f"&redirect_uri={REDIRECT_URI}"
