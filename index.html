@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kick Stream Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px;
+            width: 250px;
+            background-color: #2A2A2A;
+            border: none;
+            color: white;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px;
+            background-color: #00A86B;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        table {
+            width: 50%;
+            margin: auto;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid white;
+            padding: 10px;
+        }
+        th {
+            background-color: #00A86B;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎥 Kick Stream Viewer</h1>
+    <p>Enter a Kick username to see live viewers.</p>
+
+    <input type="text" id="username" placeholder="Enter Kick username">
+    <button onclick="fetchViewerCount()">🔍 Search</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Viewers</th>
+            </tr>
+        </thead>
+        <tbody id="viewer-table">
+        </tbody>
+    </table>
+
+    <script>
+        async function fetchViewerCount() {
+            const username = document.getElementById("username").value.trim();
+            if (!username) {
+                alert("Please enter a username.");
+                return;
+            }
+
+            const response = await fetch(`/viewer_count/${username}`);
+            const data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            const table = document.getElementById("viewer-table");
+            table.innerHTML = `<tr><td>${data.username}</td><td>${data.viewers}</td></tr>`;
+        }
+    </script>
+
+</body>
+</html>
