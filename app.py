@@ -31,8 +31,8 @@ app.add_middleware(
 )
 
 # ✅ Kick API Credentials (User OAuth Only)
-CLIENT_ID = "01JN5ASN4DBEWWPJV52C2Q0702"  # ✅ Replace with your correct Kick client ID
-CLIENT_SECRET = "eeb3ddcfb785bb82936bebd07968a9744e7c9fcc69cf925ee8167643554b6fdf"  # ✅ Replace with your correct Kick secret
+CLIENT_ID = "YOUR_CORRECT_CLIENT_ID"  # ✅ Replace with your correct Kick client ID
+CLIENT_SECRET = "YOUR_CORRECT_CLIENT_SECRET"  # ✅ Replace with your correct Kick secret
 REDIRECT_URI = "https://kickmeter.onrender.com/callback"  # ✅ Must match Kick Developer Portal
 
 # ✅ PKCE Code Verifier & Challenge
@@ -121,7 +121,9 @@ def callback(code: str = Query(None), state: str = Query(None)):
     if response.status_code == 200 and "access_token" in response_json:
         access_token = response_json["access_token"]
         print(f"✅ Authentication successful! Access Token: {access_token}")
-        return JSONResponse({"message": "Authentication successful! You can now use the API."})
+
+        # ✅ Force redirect back to the homepage after login
+        return RedirectResponse(url="https://kickmeter.onrender.com/")  
 
     return JSONResponse({
         "error": "Failed to get access token",
