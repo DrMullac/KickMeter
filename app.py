@@ -12,12 +12,8 @@ from fastapi.templating import Jinja2Templates
 # ✅ Define FastAPI app
 app = FastAPI()
 
-import os
-
-# ✅ Only mount `static/` if it exists
-if os.path.exists("static"):
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-
+# ✅ Serve Static Files & Templates
+app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # ✅ Add CORS support to allow frontend requests
@@ -105,14 +101,22 @@ def callback(code: str = Query(None), state: str = Query(None)):
 
     response = requests.post(TOKEN_URL, data=data, headers=HEADERS)
 
-    if response.status_code == 200:
-        access_token = response.json().get("access_token")
+    try:
+        response_json = response.json()
+    except requests.exceptions.JSONDecodeError:
+        response_json = {"error": "Invalid JSON response from Kick", "raw_response": response.text}
+
+    print(f"🔴 Kick Token Exchange Response: {response.status_code} | {response_json}")
+
+    if response.status_code == 200 and "access_token" in response_json:
+        access_token = response_json["access_token"]
         print(f"✅ Authentication successful! Access Token: {access_token}")
         return JSONResponse({"message": "Authentication successful! You can now use the API."})
 
     return JSONResponse({
         "error": "Failed to get access token",
-        "details": response.text
+        "status": response.status_code,
+        "kick_response": response_json  # ✅ Return full Kick response for debugging
     }, status_code=400)
 
 @app.get("/viewer_count/{username}")
