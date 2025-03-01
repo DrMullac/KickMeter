@@ -22,10 +22,12 @@ CLIENT_SECRET = "eeb3ddcfb785bb82936bebd07968a9744e7c9fcc69cf925ee8167643554b6fd
 REDIRECT_URI = "https://kickmeter.onrender.com/callback"
 TOKEN_URL = "https://kick.com/oauth2/token"
 AUTH_URL = (
-    f"https://kick.com/oauth2/authorize?response_type=code"
+    "https://kick.com/oauth2/authorize"
+    "?response_type=code"
     f"&client_id={CLIENT_ID}"
     f"&redirect_uri={REDIRECT_URI}"
     "&scope=public"
+    "&force_login=true"  # ✅ Forces Kick to show the login page first
 )
 KICK_API_URL = "https://kick.com/api/v2/channels/"
 
