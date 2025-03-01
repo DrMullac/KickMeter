@@ -24,26 +24,26 @@ templates = Jinja2Templates(directory="templates")
 # ✅ Add CORS support to allow frontend requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change this to your actual domain for security
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ Kick API Credentials (User OAuth Only)
-CLIENT_ID = "01JN5ASN4DBEWWPJV52C2Q0702"  # ✅ Replace with your correct Kick client ID
-CLIENT_SECRET = "eeb3ddcfb785bb82936bebd07968a9744e7c9fcc69cf925ee8167643554b6fdf"  # ✅ Replace with your correct Kick secret
-REDIRECT_URI = "https://kickmeter.onrender.com/callback"  # ✅ Must match Kick Developer Portal
+# ✅ Kick API Credentials
+CLIENT_ID = "01JN5ASN4DBEWWPJV52C2Q0702"  
+CLIENT_SECRET = "eeb3ddcfb785bb82936bebd07968a9744e7c9fcc69cf925ee8167643554b6fdf"  
+REDIRECT_URI = "https://kickmeter.onrender.com/callback"  
 
 # ✅ PKCE Code Verifier & Challenge
-CODE_VERIFIER = secrets.token_urlsafe(64)  # Generate a secure random string
+CODE_VERIFIER = secrets.token_urlsafe(64)  
 CODE_CHALLENGE = base64.urlsafe_b64encode(
     hashlib.sha256(CODE_VERIFIER.encode()).digest()
-).decode().rstrip("=")  # SHA-256 hash & Base64 encode (without padding)
+).decode().rstrip("=")  
 
-STATE = secrets.token_urlsafe(16)  # Random state for CSRF protection
+STATE = secrets.token_urlsafe(16)  
 
-# ✅ OAuth URLs (Using `id.kick.com`)
+# ✅ OAuth URLs
 AUTH_URL = (
     f"https://id.kick.com/oauth/authorize"
     f"?response_type=code"
@@ -55,10 +55,11 @@ AUTH_URL = (
     f"&state={STATE}"
 )
 
-TOKEN_URL = "https://id.kick.com/oauth/token"  # ✅ Corrected Token URL
-KICK_API_URL = "https://kick.com/api/v2/channels/"  # ✅ API requests still use `kick.com`
+TOKEN_URL = "https://id.kick.com/oauth/token"  
+KICK_API_URL = "https://kick.com/api/v2/channels/"  
+GRAPHQL_URL = "https://kick.com/graphql"  # ✅ GraphQL API endpoint
 
-# ✅ Headers to mimic a real browser request
+# ✅ Headers
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json",
@@ -69,7 +70,7 @@ access_token = None
 
 @app.get("/")
 def serve_homepage(request: Request):
-    """Serve the KickMeter homepage (HTML UI)."""
+    """Serve the KickMeter homepage."""
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/login")
@@ -83,26 +84,16 @@ def callback(code: str = Query(None), state: str = Query(None)):
     global access_token
 
     if not code:
-        return JSONResponse({
-            "error": "Authorization code missing",
-            "message": "Kick did not provide an authorization code. Please try logging in again.",
-            "fix": "Ensure your redirect URI in Kick Developer settings is correct."
-        }, status_code=400)
+        return JSONResponse({"error": "Authorization code missing"}, status_code=400)
 
     if state != STATE:
-        return JSONResponse({
-            "error": "State mismatch",
-            "message": "The state parameter does not match. Possible CSRF attack."
-        }, status_code=400)
+        return JSONResponse({"error": "State mismatch"}, status_code=400)
 
-    # ✅ Fix: Include `client_secret` in token request
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
     data = {
         "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,  # ✅ Must include client_secret
+        "client_secret": CLIENT_SECRET,  
         "grant_type": "authorization_code",
         "code": code,
         "redirect_uri": REDIRECT_URI,
@@ -114,55 +105,61 @@ def callback(code: str = Query(None), state: str = Query(None)):
     try:
         response_json = response.json()
     except requests.exceptions.JSONDecodeError:
-        response_json = {"error": "Invalid JSON response from Kick", "raw_response": response.text}
-
-    print(f"🔴 Kick Token Exchange Response: {response.status_code} | {response_json}")
+        response_json = {"error": "Invalid JSON response from Kick"}
 
     if response.status_code == 200 and "access_token" in response_json:
         access_token = response_json["access_token"]
-        print(f"✅ Authentication successful! Access Token: {access_token}")
-
-        # ✅ Force redirect back to the homepage after login
         return RedirectResponse(url="https://kickmeter.onrender.com/")  
 
-    return JSONResponse({
-        "error": "Failed to get access token",
-        "status": response.status_code,
-        "kick_response": response_json  # ✅ Return full Kick response for debugging
-    }, status_code=400)
+    return JSONResponse({"error": "Failed to get access token"}, status_code=400)
+
+def get_graphql_viewer_count(username):
+    """Fetch real-time viewer count from Kick's GraphQL API."""
+    query = {
+        "operationName": "StreamInfo",
+        "variables": {"slug": username},
+        "query": "query StreamInfo($slug: String!) { stream(slug: $slug) { viewerCount } }"
+    }
+    
+    response = requests.post(GRAPHQL_URL, json=query, headers=HEADERS)
+
+    if response.status_code == 200:
+        data = response.json()
+        if "data" in data and "stream" in data["data"] and data["data"]["stream"]:
+            return data["data"]["stream"]["viewerCount"]
+    return None
 
 @app.get("/viewer_count/{username}")
 def get_viewer_count(username: str):
-    """Fetch the viewer count for a given Kick streamer."""
+    """Fetch both Kick API and GraphQL viewer counts."""
     global access_token
 
     if not access_token:
-        return RedirectResponse("/login")  # ✅ Forces login if not authenticated
+        return RedirectResponse("/login")  
 
     auth_headers = {
         **HEADERS,
-        "Authorization": f"Bearer {access_token}"  # ✅ Use user access token
+        "Authorization": f"Bearer {access_token}"
     }
     
     try:
-        response = requests.get(f"{KICK_API_URL}{username}", headers=auth_headers, timeout=5)
+        # ✅ Fetch viewer count from Kick API
+        api_response = requests.get(f"{KICK_API_URL}{username}", headers=auth_headers, timeout=5)
 
-        if response.status_code == 200 and response.text.strip():
-            data = response.json()
-            if "slug" in data:
-                return {"username": username, "viewers": data["livestream"]["viewer_count"] if data["livestream"] else 0}
-            else:
-                return JSONResponse({"error": "User not found"}, status_code=404)
-
-        elif response.status_code == 401:
-            print("🔄 Token expired. Redirecting to login...")
-            return RedirectResponse("/login")  # ✅ Redirect to login if token expired
-
-        elif response.status_code == 403:
-            return JSONResponse({"error": "Kick API is blocking requests. Try again later."}, status_code=403)
-
+        if api_response.status_code == 200 and api_response.text.strip():
+            api_data = api_response.json()
+            api_viewers = api_data["livestream"]["viewer_count"] if api_data["livestream"] else 0
         else:
-            return JSONResponse({"error": f"Unexpected error (Status: {response.status_code})", "details": response.text}, status_code=500)
+            api_viewers = None
+
+        # ✅ Fetch viewer count from GraphQL API
+        graphql_viewers = get_graphql_viewer_count(username)
+
+        return {
+            "username": username,
+            "kick_api_viewers": api_viewers,
+            "kick_graphql_viewers": graphql_viewers,
+        }
 
     except requests.exceptions.RequestException as e:
         return JSONResponse({"error": "Failed to connect to Kick API", "details": str(e)}, status_code=500)
