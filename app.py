@@ -1,6 +1,6 @@
 import requests
 from fastapi import FastAPI, Query
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 import os
 
 app = FastAPI()
@@ -24,21 +24,18 @@ HEADERS = {
 access_token = None
 
 @app.get("/")
-def homepage():
-    """Redirects to login if not authenticated."""
-    global access_token
-    if not access_token:
-        return RedirectResponse(AUTH_URL)
-    return JSONResponse({"message": "You are logged in. Use /viewer_count/{username} to get viewer counts."})
+def serve_homepage():
+    """Serve the frontend UI."""
+    return FileResponse("index.html")
 
-# ✅ Step 1: Redirect user to Kick login
 @app.get("/login")
 def login():
+    """Redirects users to Kick login."""
     return RedirectResponse(AUTH_URL)
 
-# ✅ Step 2: Handle OAuth callback & get access token
 @app.get("/callback")
 def callback(code: str = Query(None)):
+    """Handles OAuth callback and gets the access token."""
     global access_token
     if not code:
         return JSONResponse({"error": "Authorization code missing"}, status_code=400)
@@ -60,12 +57,12 @@ def callback(code: str = Query(None)):
     else:
         return JSONResponse({"error": "Failed to get access token", "details": response.text}, status_code=400)
 
-# ✅ Step 3: Use Access Token to Fetch Viewer Count
 @app.get("/viewer_count/{username}")
 def get_viewer_count(username: str):
+    """Fetch the viewer count for a given Kick streamer."""
     global access_token
     if not access_token:
-        return RedirectResponse(AUTH_URL)  # Redirect to login if not authenticated
+        return RedirectResponse(AUTH_URL)
 
     auth_headers = {**HEADERS, "Authorization": f"Bearer {access_token}"}
     response = requests.get(f"{KICK_API_URL}{username}", headers=auth_headers, timeout=5)
@@ -78,7 +75,7 @@ def get_viewer_count(username: str):
             return JSONResponse({"error": "User not found"}, status_code=404)
     elif response.status_code == 401:
         print("🔄 Token expired. Re-authenticating...")
-        return RedirectResponse(AUTH_URL)  # Redirect to login to refresh token
+        return RedirectResponse(AUTH_URL)
     elif response.status_code == 403:
         return JSONResponse({"error": "Kick API still blocking requests. Try re-authenticating."}, status_code=403)
     else:
