@@ -1,9 +1,19 @@
 import requests
 from fastapi import FastAPI, Query
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 import os
 
 app = FastAPI()
+
+# ✅ Add CORS support to allow frontend requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change this to your actual domain for security
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ✅ Replace with your actual Kick API credentials
 CLIENT_ID = "01JN5ASN4DBEWWPJV52C2Q0702"
@@ -62,25 +72,31 @@ def get_viewer_count(username: str):
     """Fetch the viewer count for a given Kick streamer."""
     global access_token
     if not access_token:
-        return RedirectResponse(AUTH_URL)
+        return JSONResponse({"error": "Authentication required. Please log in first."}, status_code=401)
 
     auth_headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(f"https://kick.com/api/v2/channels/{username}", headers=auth_headers)
+    
+    try:
+        response = requests.get(f"{KICK_API_URL}{username}", headers=auth_headers, timeout=5)
 
-    if response.status_code == 200 and response.text.strip():
-        data = response.json()
-        if "slug" in data:
-            return {"username": username, "viewers": data["livestream"]["viewer_count"] if data["livestream"] else 0}
+        if response.status_code == 200 and response.text.strip():
+            data = response.json()
+            if "slug" in data:
+                return {"username": username, "viewers": data["livestream"]["viewer_count"] if data["livestream"] else 0}
+            else:
+                return JSONResponse({"error": "User not found"}, status_code=404)
+
+        elif response.status_code == 401:
+            return JSONResponse({"error": "Token expired. Please log in again."}, status_code=401)
+
+        elif response.status_code == 403:
+            return JSONResponse({"error": "Kick API is blocking requests. Try again later."}, status_code=403)
+
         else:
-            return JSONResponse({"error": "User not found"}, status_code=404)
-    
-    elif response.status_code == 401:
-        return JSONResponse({"error": "Token expired. Please log in again."}, status_code=401)
-    
-    elif response.status_code == 403:
-        return JSONResponse({"error": "Kick API blocked the request. Try again later."}, status_code=403)
+            return JSONResponse({"error": f"Unexpected error (Status: {response.status_code})", "details": response.text}, status_code=500)
 
-    return JSONResponse({"error": f"Unexpected response (Status: {response.status_code})"}, status_code=500)
+    except requests.exceptions.RequestException as e:
+        return JSONResponse({"error": "Failed to connect to Kick API", "details": str(e)}, status_code=500)
 
 if __name__ == "__main__":
     import uvicorn
