@@ -21,7 +21,7 @@ else:
 # ✅ Serve Templates
 templates = Jinja2Templates(directory="templates")
 
-# ✅ Add CORS support to allow frontend requests
+# ✅ Add CORS support
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
@@ -121,12 +121,22 @@ def get_graphql_viewer_count(username):
         "query": "query StreamInfo($slug: String!) { stream(slug: $slug) { viewerCount } }"
     }
     
-    response = requests.post(GRAPHQL_URL, json=query, headers=HEADERS)
+    try:
+        response = requests.post(GRAPHQL_URL, json=query, headers=HEADERS)
+        print(f"🔵 GraphQL Response ({response.status_code}): {response.text}")  # ✅ Debug log
 
-    if response.status_code == 200:
-        data = response.json()
-        if "data" in data and "stream" in data["data"] and data["data"]["stream"]:
-            return data["data"]["stream"]["viewerCount"]
+        if response.status_code == 200 and response.text.strip():
+            try:
+                data = response.json()
+                if "data" in data and "stream" in data["data"] and data["data"]["stream"]:
+                    return data["data"]["stream"]["viewerCount"]
+            except requests.exceptions.JSONDecodeError:
+                print("⚠️ Error: GraphQL returned invalid JSON!")
+                return None
+    except requests.exceptions.RequestException as e:
+        print(f"⚠️ GraphQL API request failed: {str(e)}")
+        return None
+    
     return None
 
 @app.get("/viewer_count/{username}")
@@ -145,6 +155,7 @@ def get_viewer_count(username: str):
     try:
         # ✅ Fetch viewer count from Kick API
         api_response = requests.get(f"{KICK_API_URL}{username}", headers=auth_headers, timeout=5)
+        print(f"🔴 Kick API Response ({api_response.status_code}): {api_response.text}")  # ✅ Debug log
 
         if api_response.status_code == 200 and api_response.text.strip():
             api_data = api_response.json()
@@ -162,6 +173,7 @@ def get_viewer_count(username: str):
         }
 
     except requests.exceptions.RequestException as e:
+        print(f"⚠️ Error: Failed to connect to Kick API: {str(e)}")
         return JSONResponse({"error": "Failed to connect to Kick API", "details": str(e)}, status_code=500)
 
 # ✅ Ensure app is defined before running
