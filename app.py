@@ -34,7 +34,7 @@ STATE = secrets.token_urlsafe(16)  # Random state for CSRF protection
 
 # ✅ OAuth URLs (Using `id.kick.com`)
 AUTH_URL = (
-    f"https://id.kick.com/oauth2/authorize"
+    f"https://id.kick.com/oauth/authorize"
     f"?response_type=code"
     f"&client_id={CLIENT_ID}"
     f"&redirect_uri={REDIRECT_URI}"
