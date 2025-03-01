@@ -1,8 +1,7 @@
 import requests
-from fastapi import FastAPI, Query  # ✅ Fixed missing Query import
-from fastapi.responses import RedirectResponse, JSONResponse  # ✅ Fixed missing RedirectResponse import
+from fastapi import FastAPI, Query
+from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 import os
-
 
 app = FastAPI()
 
@@ -65,8 +64,8 @@ def get_viewer_count(username: str):
     if not access_token:
         return RedirectResponse(AUTH_URL)
 
-    auth_headers = {**HEADERS, "Authorization": f"Bearer {access_token}"}
-    response = requests.get(f"{KICK_API_URL}{username}", headers=auth_headers, timeout=5)
+    auth_headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get(f"https://kick.com/api/v2/channels/{username}", headers=auth_headers)
 
     if response.status_code == 200 and response.text.strip():
         data = response.json()
@@ -74,13 +73,14 @@ def get_viewer_count(username: str):
             return {"username": username, "viewers": data["livestream"]["viewer_count"] if data["livestream"] else 0}
         else:
             return JSONResponse({"error": "User not found"}, status_code=404)
+    
     elif response.status_code == 401:
-        print("🔄 Token expired. Re-authenticating...")
-        return RedirectResponse(AUTH_URL)
+        return JSONResponse({"error": "Token expired. Please log in again."}, status_code=401)
+    
     elif response.status_code == 403:
-        return JSONResponse({"error": "Kick API still blocking requests. Try re-authenticating."}, status_code=403)
-    else:
-        return JSONResponse({"error": f"Unexpected response (Status: {response.status_code})"}, status_code=500)
+        return JSONResponse({"error": "Kick API blocked the request. Try again later."}, status_code=403)
+
+    return JSONResponse({"error": f"Unexpected response (Status: {response.status_code})"}, status_code=500)
 
 if __name__ == "__main__":
     import uvicorn
