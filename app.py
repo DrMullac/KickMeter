@@ -12,8 +12,12 @@ from fastapi.templating import Jinja2Templates
 # ✅ Define FastAPI app
 app = FastAPI()
 
-# ✅ Serve Static Files & Templates
-app.mount("/static", StaticFiles(directory="static"), name="static")
+import os
+
+# ✅ Only mount `static/` if it exists
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
 templates = Jinja2Templates(directory="templates")
 
 # ✅ Add CORS support to allow frontend requests
