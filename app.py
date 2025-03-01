@@ -20,7 +20,7 @@ app.add_middleware(
 # ✅ Kick API Credentials (Replace with your actual values)
 CLIENT_ID = "01JN5ASN4DBEWWPJV52C2Q0702"
 CLIENT_SECRET = "eeb3ddcfb785bb82936bebd07968a9744e7c9fcc69cf925ee8167643554b6fdf"
-REDIRECT_URI = "https://kickmeter.onrender.com/callback"
+REDIRECT_URI = "https://kickmeter.onrender.com/callback&scope=public"
 
 # ✅ URL-encode the Redirect URI to avoid errors
 ENCODED_REDIRECT_URI = REDIRECT_URI  # ✅ No extra encoding, Kick handles it correctly
