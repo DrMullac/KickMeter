@@ -67,23 +67,40 @@
     <script>
         async function fetchViewerCount() {
             const username = document.getElementById("username").value.trim();
+            
             if (!username) {
                 alert("Please enter a username.");
                 return;
             }
-
-            const response = await fetch(`/viewer_count/${username}`);
-            const data = await response.json();
-
-            if (data.error) {
-                alert(data.error);
-                return;
+    
+            try {
+                // ✅ Call FastAPI backend
+                const response = await fetch(`/viewer_count/${username}`);
+    
+                // ✅ Ensure the response is OK
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status} ${response.statusText}`);
+                }
+    
+                const data = await response.json();
+    
+                // ✅ Check if API returned an error
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+    
+                // ✅ Display the viewer count in the table
+                const table = document.getElementById("viewer-table");
+                table.innerHTML = `<tr><td>${data.username}</td><td>${data.viewers}</td></tr>`;
+    
+            } catch (error) {
+                console.error("Failed to fetch viewer count:", error);
+                alert("Failed to fetch viewer count. Please try again.");
             }
-
-            const table = document.getElementById("viewer-table");
-            table.innerHTML = `<tr><td>${data.username}</td><td>${data.viewers}</td></tr>`;
         }
     </script>
+    
 
 </body>
 </html>
