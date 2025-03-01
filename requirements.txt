@@ -1,5 +1,4 @@
-Flask
-requests
-gunicorn
+fastapi
+uvicorn
 requests
 tk
