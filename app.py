@@ -55,7 +55,7 @@ AUTH_URL = (
     f"&state={STATE}"
 )
 
-TOKEN_URL = "https://id.kick.com/oauth2/token"  # ✅ Updated to correct OAuth token URL
+TOKEN_URL = "https://id.kick.com/oauth/token"  # ✅ Updated to correct OAuth token URL
 KICK_API_URL = "https://kick.com/api/v2/channels/"  # ✅ API requests still use `kick.com`
 
 # ✅ Headers to mimic a real browser request
