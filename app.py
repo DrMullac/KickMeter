@@ -114,15 +114,27 @@ def callback(code: str = Query(None), state: str = Query(None)):
     return JSONResponse({"error": "Failed to get access token"}, status_code=400)
 
 def get_graphql_viewer_count(username):
-    """Fetch real-time viewer count from Kick's GraphQL API."""
+    """Fetch real-time viewer count from Kick's GraphQL API using authentication."""
+    global access_token  
+
+    if not access_token:
+        print("⚠️ No access token available for GraphQL request!")
+        return None
+
     query = {
         "operationName": "StreamInfo",
         "variables": {"slug": username},
         "query": "query StreamInfo($slug: String!) { stream(slug: $slug) { viewerCount } }"
     }
-    
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",  # ✅ Use OAuth token
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
     try:
-        response = requests.post(GRAPHQL_URL, json=query, headers=HEADERS)
+        response = requests.post(GRAPHQL_URL, json=query, headers=headers)
         print(f"🔵 GraphQL Response ({response.status_code}): {response.text}")  # ✅ Debug log
 
         if response.status_code == 200 and response.text.strip():
