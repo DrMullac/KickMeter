@@ -3,12 +3,18 @@ import os
 import hashlib
 import base64
 import secrets
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 # ✅ Define FastAPI app
 app = FastAPI()
+
+# ✅ Serve Static Files & Templates
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 # ✅ Add CORS support to allow frontend requests
 app.add_middleware(
@@ -34,7 +40,7 @@ STATE = secrets.token_urlsafe(16)  # Random state for CSRF protection
 
 # ✅ OAuth URLs (Using `id.kick.com`)
 AUTH_URL = (
-    f"https://id.kick.com/oauth/authorize"
+    f"https://id.kick.com/oauth/authorize"  # ✅ Correct URL
     f"?response_type=code"
     f"&client_id={CLIENT_ID}"
     f"&redirect_uri={REDIRECT_URI}"
@@ -57,12 +63,9 @@ HEADERS = {
 access_token = None
 
 @app.get("/")
-def homepage():
-    """Serve the main page."""
-    return JSONResponse({
-        "message": "KickMeter API is running. Use /viewer_count/{username} to get live viewer counts.",
-        "example": "/viewer_count/xqc"
-    })
+def serve_homepage(request: Request):
+    """Serve the KickMeter homepage (HTML UI)."""
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/login")
 def login():

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KickMeter - Live Viewer Count</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #121212;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #00ff99;
+        }
+        input, button {
+            padding: 10px;
+            margin: 10px;
+            font-size: 16px;
+        }
+        #viewerResult {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #00ff99;
+        }
+        .login-btn {
+            background-color: #00ff99;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>KickMeter - Live Viewer Count</h1>
+    
+    <button class="login-btn" onclick="window.location.href='/login'">Login with Kick</button>
+
+    <br><br>
+
+    <input type="text" id="username" placeholder="Enter Kick username" />
+    <button onclick="fetchViewerCount()">Check Viewers</button>
+
+    <div id="viewerResult"></div>
+
+    <script>
+        function fetchViewerCount() {
+            const username = document.getElementById('username').value;
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+
+            fetch(`/viewer_count/${username}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('viewerResult').innerHTML = `<span style="color: red;">Error: ${data.error}</span>`;
+                    } else {
+                        document.getElementById('viewerResult').innerHTML = 
+                            `User: <strong>${data.username}</strong> <br> 
+                             Viewers: <strong>${data.viewers}</strong>`;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('viewerResult').innerHTML = `<span style="color: red;">Failed to fetch viewer count.</span>`;
+                });
+        }
+    </script>
+</body>
+</html>
