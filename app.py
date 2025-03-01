@@ -1,6 +1,6 @@
 import requests
-from fastapi import FastAPI, Query
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import FastAPI
+from fastapi.responses import RedirectResponse, JSONResponse  # ✅ Fixed Import Issue
 import os
 
 app = FastAPI()
