@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 import requests
+import os
 
 app = FastAPI()
 
@@ -20,4 +21,5 @@ def get_viewer_count(username: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))  # Use Render's assigned port
+    uvicorn.run(app, host="0.0.0.0", port=port)
